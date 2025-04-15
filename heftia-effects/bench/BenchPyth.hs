@@ -23,6 +23,10 @@ import Control.Monad.Reader qualified as M
 import Control.Mp.Eff qualified as Mp
 import Control.Mp.Util qualified as Mp
 import "eff" Control.Effect qualified as EF
+import "effective" Control.Effect qualified as EV
+import "effective" Control.Effect.Alternative qualified as EV
+import "effective" Control.Effect.Nondet qualified as EV
+import "effective" Control.Effect.Reader qualified as EV
 
 programFreer :: (FS.Member FS.NonDet es) => Int -> FS.Eff es (Int, Int, Int)
 programFreer upbound = do
@@ -149,3 +153,27 @@ pythLogictDeep :: Int -> [(Int, Int, Int)]
 pythLogictDeep n = M.runIdentity $ runR $ runR $ runR $ runR $ runR $ M.observeAllT $ runR $ runR $ runR $ runR $ runR $ programMtl n
   where
     runR = (`M.runReaderT` ())
+
+programEffective :: Int -> (Int, Int, Int)  EV.! '[EV.Empty, EV.Choose]
+programEffective upbound = do
+    x <- choice upbound
+    y <- choice upbound
+    z <- choice upbound
+    if x * x + y * y == z * z then return (x, y, z) else empty
+  where
+    choice 0 = empty
+    choice n = choice (n - 1) <|> pure n
+{-# NOINLINE programEffective #-}
+
+pythEffective :: Int -> [(Int, Int, Int)]
+pythEffective n = EV.handle (EV.nondet) (programEffective n)
+
+pythEffectiveDeep :: Int -> [(Int, Int, Int)]
+pythEffectiveDeep n = EV.handle (run EV.|> run EV.|> run EV.|> run EV.|> run EV.|> EV.nondet EV.|>
+                                 run EV.|> run EV.|> run EV.|> run EV.|> run ) (programEffective n)
+  where
+    run = EV.reader ()
+
+pythNative :: Int -> [(Int, Int, Int)]
+pythNative n = [ (x, y, z) | x <- [1 .. n], y <- [1 .. n], z <- [1 .. n], x * x + y * y == z * z ]
+{-# NOINLINE pythNative #-}

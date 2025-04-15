@@ -271,7 +271,7 @@ benchmark heftia-bench
     hs-source-dirs: bench
     main-is:        Main.hs
 
-    ghc-options: -fconstraint-solver-iterations=16
+    ghc-options: -fconstraint-solver-iterations=16 -O2
 
     build-depends:
         heftia-effects,
@@ -284,6 +284,7 @@ benchmark heftia-bench
         logict >= 0.7.0.3 && < 0.9,
         tasty-bench >= 0.3 && < 0.5,
         mpeff,
+        effective
 
     if impl(ghc >= 9.6) && impl(ghc < 9.10)
        build-depends: eff

@@ -3,6 +3,8 @@
 
 -- Benchmarking higher-order effects #1: Catching errors
 
+{-# LANGUAGE DataKinds #-}
+
 module BenchCatch where
 
 import Control.Carrier.Error.Either qualified as F
@@ -20,6 +22,9 @@ import Polysemy qualified as P
 import Polysemy.Error qualified as P
 import Polysemy.Reader qualified as P
 import "eff" Control.Effect qualified as E
+import "effective" Control.Effect qualified as EF
+import "effective" Control.Effect.Except qualified as EF
+import "effective" Control.Effect.Reader qualified as EF
 
 programHeftia :: (H.Member (H.Throw ()) ef, H.MemberH (H.Catch ()) eh) => Int -> H.Eff eh ef a
 programHeftia = \case
@@ -108,6 +113,19 @@ catchMtl :: Int -> Either () ()
 catchMtl n = M.runExcept $ programMtl n
 
 catchMtlDeep :: Int -> Either () ()
-catchMtlDeep n = M.runIdentity $ run $ run $ run $ run $ run $ M.runExceptT $ run $ run $ run $ run $ run $ programMtl n
-  where
+catchMtlDeep n = M.runIdentity $ run $ run $ run $ run $ run $ M.runExceptT $ run $ run $ run $ run $ run $ programMtl n where
     run = (`M.runReaderT` ())
+
+programEffective :: Int -> a EF.! '[EF.Throw (), EF.Catch ()]
+programEffective = \case
+  0 -> EF.throw ()
+  n -> EF.catch (programEffective (n - 1)) \() -> EF.throw ()
+{-# NOINLINE programEffective #-}
+
+catchEffective :: Int -> Either () ()
+catchEffective n = EF.handle EF.except (programEffective n)
+
+catchEffectiveDeep :: Int -> Either () ()
+catchEffectiveDeep n = EF.handle (run EF.|> run EF.|> run EF.|> run EF.|> run EF.|> EF.except EF.|>
+                                  run EF.|> run EF.|> run EF.|> run EF.|> run ) (programEffective n)
+  where run = EF.reader ()

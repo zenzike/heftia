@@ -24,6 +24,9 @@ import Polysemy qualified as P
 import Polysemy.Reader qualified as P
 import Polysemy.State qualified as P
 import "eff" Control.Effect qualified as EF
+import "effective" Control.Effect qualified as EV
+import "effective" Control.Effect.State qualified as EV
+import "effective" Control.Effect.Reader qualified as EV
 
 programHeftia :: (H.Member (H.State Int) es) => H.Eff '[] es Int
 programHeftia = do
@@ -183,3 +186,21 @@ countdownMtlDeep :: Int -> (Int, Int)
 countdownMtlDeep n = M.runIdentity $ runR $ runR $ runR $ runR $ runR $ M.runStateT (runR $ runR $ runR $ runR $ runR $ programMtl) n
   where
     runR = (`M.runReaderT` ())
+
+programEffective :: Int EV.! '[EV.Get Int, EV.Put Int]
+programEffective = do
+    x <- EV.get @Int
+    if x == 0
+        then pure x
+        else do
+            EV.put (x - 1)
+            programEffective
+{-# NOINLINE programEffective #-}
+
+countdownEffective :: Int -> (Int, Int)
+countdownEffective s = EV.handle (EV.state s) programEffective
+
+countdownEffectiveDeep :: Int -> (Int, Int)
+countdownEffectiveDeep s = EV.handle (run EV.|> run EV.|> run EV.|> run EV.|> run EV.|> EV.state s EV.|>
+                                      run EV.|> run EV.|> run EV.|> run EV.|> run ) programEffective
+  where run = EV.reader ()

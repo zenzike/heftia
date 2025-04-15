@@ -1,6 +1,7 @@
 packages:
     heftia/
     heftia-effects/
+    ../effective/
 
 source-repository-package
     type: git
@@ -12,3 +13,6 @@ allow-newer: eff:primitive
 
 benchmarks: True
 tests: True
+
+package mtl
+  ghc-options: -O2

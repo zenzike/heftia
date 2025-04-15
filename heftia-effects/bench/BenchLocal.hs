@@ -13,6 +13,8 @@ import Effectful.Reader.Dynamic qualified as EL
 import Polysemy qualified as P
 import Polysemy.Reader qualified as P
 import "eff" Control.Effect qualified as E
+import "effective" Control.Effect qualified as EV
+import "effective" Control.Effect.Reader qualified as EV
 
 programHeftia :: (H.Member (H.Ask Int) ef, H.MemberH (H.Local Int) eh) => Int -> H.Eff eh ef Int
 programHeftia = \case
@@ -112,3 +114,18 @@ localMtlDeep n = M.runIdentity $ run $ run $ run $ run $ run $ M.runReader 0 $ r
   where
     run = (`M.runReaderT` ())
 -}
+
+
+programEffective :: Int -> Int EV.! '[EV.Ask Int, EV.Local Int]
+programEffective = \case
+    0 -> EV.ask
+    n -> EV.local (+ (1 :: Int)) (programEffective (n - 1))
+{-# NOINLINE programEffective #-}
+
+localEffective :: Int -> Int
+localEffective n = EV.handle (EV.reader (0 :: Int)) (programEffective n)
+
+localEffectiveDeep :: Int -> Int
+localEffectiveDeep n = EV.handle (run EV.|> run EV.|> run EV.|> run EV.|> run EV.|> EV.reader (0 :: Int) EV.|>
+                                  run EV.|> run EV.|> run EV.|> run EV.|> run ) (programEffective n)
+  where run = EV.reader ()
