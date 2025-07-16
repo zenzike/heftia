@@ -128,6 +128,8 @@ main =
                     , bench "eff.5+5" $ nf pythEffDeep x
                     , bench "mtl-logict.5+5" $ nf pythLogictDeep x
                     , bench "effective.5+5" $ nf pythEffectiveDeep x
+                    , bench "effective.ignore.5+5" $ nf pythEffectiveDeep' x
+                    , bench "effective.ignore'.5+5" $ nf pythEffectiveDeep'' x
                     ]
         , bgroup "coroutine.shallow" $
             [1000] <&> \x ->

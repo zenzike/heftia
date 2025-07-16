@@ -36,7 +36,6 @@ programHeftia = do
         else do
             H.put (x - 1)
             programHeftia
-{-# NOINLINE programHeftia #-}
 
 countdownHeftia :: Int -> (Int, Int)
 countdownHeftia n = H.runPure $ H.runState n programHeftia
@@ -62,7 +61,6 @@ programFreer = do
         else do
             FS.put (x - 1)
             programFreer
-{-# NOINLINE programFreer #-}
 
 countdownFreer :: Int -> (Int, Int)
 countdownFreer n = FS.run $ FS.runState n programFreer
@@ -80,7 +78,6 @@ programSem = do
         else do
             P.put (x - 1)
             programSem
-{-# NOINLINE programSem #-}
 
 countdownSem :: Int -> (Int, Int)
 countdownSem n = P.run $ P.runState n programSem
@@ -98,7 +95,6 @@ programFused = do
         else do
             F.put (x - 1)
             programFused
-{-# NOINLINE programFused #-}
 
 countdownFused :: Int -> (Int, Int)
 countdownFused n = F.run $ F.runState n programFused
@@ -116,7 +112,6 @@ programEffectful = do
         else do
             EL.put (x - 1)
             programEffectful
-{-# NOINLINE programEffectful #-}
 
 countdownEffectful :: Int -> (Int, Int)
 countdownEffectful n = EL.runPureEff $ EL.runStateLocal n programEffectful
@@ -135,7 +130,6 @@ programEff = do
         else do
             EF.put (x - 1)
             programEff
-{-# NOINLINE programEff #-}
 
 countdownEff :: Int -> (Int, Int)
 countdownEff n = EF.run $ EF.runState n programEff
@@ -153,7 +147,6 @@ programEv = do
         else do
             E.perform E.put (x - 1)
             programEv
-{-# NOINLINE programEv #-}
 
 countdownEv :: Int -> (Int, Int)
 countdownEv n = E.runEff $ runStateEv n programEv
@@ -177,7 +170,6 @@ programMtl = do
         else do
             M.put (x - 1)
             programMtl
-{-# NOINLINE programMtl #-}
 
 countdownMtl :: Int -> (Int, Int)
 countdownMtl = M.runState programMtl
@@ -195,7 +187,6 @@ programEffective = do
         else do
             EV.put (x - 1)
             programEffective
-{-# NOINLINE programEffective #-}
 
 countdownEffective :: Int -> (Int, Int)
 countdownEffective s = EV.handle (EV.state s) programEffective

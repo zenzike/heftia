@@ -20,7 +20,6 @@ programHeftia :: (H.Member (H.Ask Int) ef, H.MemberH (H.Local Int) eh) => Int ->
 programHeftia = \case
     0 -> H.ask
     n -> H.local @Int (+ 1) (programHeftia (n - 1))
-{-# NOINLINE programHeftia #-}
 
 localHeftia :: Int -> Int
 localHeftia n = H.runPure $ H.runAsk @Int 0 $ H.runLocal @Int $ programHeftia n
@@ -40,7 +39,6 @@ programSem :: (P.Reader Int `P.Member` es) => Int -> P.Sem es Int
 programSem = \case
     0 -> P.ask
     n -> P.local @Int (+ 1) (programSem (n - 1))
-{-# NOINLINE programSem #-}
 
 localSem :: Int -> Int
 localSem n = P.run $ P.runReader @Int 0 $ programSem n
@@ -54,7 +52,6 @@ programFused :: (F.Has (F.Reader Int) sig m) => Int -> m Int
 programFused = \case
     0 -> F.ask
     n -> F.local @Int (+ 1) (programFused (n - 1))
-{-# NOINLINE programFused #-}
 
 localFused :: Int -> Int
 localFused n = F.run $ F.runReader @Int 0 $ programFused n
@@ -68,7 +65,6 @@ programEffectful :: (EL.Reader Int EL.:> es) => Int -> EL.Eff es Int
 programEffectful = \case
     0 -> EL.ask
     n -> EL.local @Int (+ 1) (programEffectful (n - 1))
-{-# NOINLINE programEffectful #-}
 
 localEffectful :: Int -> Int
 localEffectful n = EL.runPureEff $ EL.runReader @Int 0 $ programEffectful n
@@ -83,7 +79,6 @@ programEff :: (E.Reader Int E.:< es) => Int -> E.Eff es Int
 programEff = \case
     0 -> E.ask
     n -> E.local @Int (+ 1) (programEff (n - 1))
-{-# NOINLINE programEff #-}
 
 localEff :: Int -> Int
 localEff n = E.run $ E.runReader @Int 0 $ programEff n
@@ -120,7 +115,6 @@ programEffective :: Int -> Int EV.! '[EV.Ask Int, EV.Local Int]
 programEffective = \case
     0 -> EV.ask
     n -> EV.local (+ (1 :: Int)) (programEffective (n - 1))
-{-# NOINLINE programEffective #-}
 
 localEffective :: Int -> Int
 localEffective n = EV.handle (EV.reader (0 :: Int)) (programEffective n)

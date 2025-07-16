@@ -30,7 +30,6 @@ programHeftia :: (H.Member (H.Throw ()) ef, H.MemberH (H.Catch ()) eh) => Int ->
 programHeftia = \case
     0 -> H.throw ()
     n -> H.catch (programHeftia (n - 1)) \() -> H.throw ()
-{-# NOINLINE programHeftia #-}
 
 catchHeftia :: Int -> Either () ()
 catchHeftia n = H.runPure $ H.runThrow $ H.runCatch @() $ programHeftia n
@@ -50,7 +49,6 @@ programSem :: (P.Error () `P.Member` es) => Int -> P.Sem es a
 programSem = \case
     0 -> P.throw ()
     n -> P.catch (programSem (n - 1)) \() -> P.throw ()
-{-# NOINLINE programSem #-}
 
 catchSem :: Int -> Either () ()
 catchSem n = P.run $ P.runError $ programSem n
@@ -64,7 +62,6 @@ programFused :: (F.Has (F.Error ()) sig m) => Int -> m a
 programFused = \case
     0 -> F.throwError ()
     n -> F.catchError (programFused (n - 1)) \() -> F.throwError ()
-{-# NOINLINE programFused #-}
 
 catchFused :: Int -> Either () ()
 catchFused n = F.run $ F.runError $ programFused n
@@ -78,7 +75,6 @@ programEffectful :: (EL.Error () EL.:> es) => Int -> EL.Eff es a
 programEffectful = \case
     0 -> EL.throwError ()
     n -> EL.catchError (programEffectful (n - 1)) \_ () -> EL.throwError ()
-{-# NOINLINE programEffectful #-}
 
 catchEffectful :: Int -> Either (EL.CallStack, ()) ()
 catchEffectful n = EL.runPureEff $ EL.runError $ programEffectful n
@@ -93,7 +89,6 @@ programEff :: (E.Error () E.:< es) => Int -> E.Eff es a
 programEff = \case
     0 -> E.throw ()
     n -> E.catch (programEff (n - 1)) \() -> E.throw ()
-{-# NOINLINE programEff #-}
 
 catchEff :: Int -> Either () ()
 catchEff n = E.run $ E.runError $ programEff n
@@ -107,7 +102,6 @@ programMtl :: (M.MonadError () m) => Int -> m a
 programMtl = \case
     0 -> M.throwError ()
     n -> M.catchError (programMtl (n - 1)) \() -> M.throwError ()
-{-# NOINLINE programMtl #-}
 
 catchMtl :: Int -> Either () ()
 catchMtl n = M.runExcept $ programMtl n
@@ -120,7 +114,6 @@ programEffective :: Int -> a EF.! '[EF.Throw (), EF.Catch ()]
 programEffective = \case
   0 -> EF.throw ()
   n -> EF.catch (programEffective (n - 1)) \() -> EF.throw ()
-{-# NOINLINE programEffective #-}
 
 catchEffective :: Int -> Either () ()
 catchEffective n = EF.handle EF.except (programEffective n)

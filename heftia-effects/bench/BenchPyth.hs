@@ -27,6 +27,7 @@ import "effective" Control.Effect qualified as EV
 import "effective" Control.Effect.Alternative qualified as EV
 import "effective" Control.Effect.Nondet qualified as EV
 import "effective" Control.Effect.Reader qualified as EV
+import "effective" Data.HFunctor qualified as EV
 
 programFreer :: (FS.Member FS.NonDet es) => Int -> FS.Eff es (Int, Int, Int)
 programFreer upbound = do
@@ -37,7 +38,6 @@ programFreer upbound = do
   where
     choice 0 = empty
     choice n = choice (n - 1) <|> pure n
-{-# NOINLINE programFreer #-}
 
 pythFreer :: Int -> [(Int, Int, Int)]
 pythFreer n = FS.run $ FS.makeChoiceA $ programFreer n
@@ -56,7 +56,6 @@ programHeftia upbound = do
   where
     choice 0 = H.empty
     choice n = choice (n - 1) `H.branch` pure n
-{-# NOINLINE programHeftia #-}
 
 pythHeftia :: Int -> [(Int, Int, Int)]
 pythHeftia n = H.runPure $ H.runNonDet $ programHeftia n
@@ -74,7 +73,6 @@ programFused upbound = do
     if x * x + y * y == z * z then return (x, y, z) else empty
   where
     choice x = F.oneOf [1 .. x]
-{-# NOINLINE programFused #-}
 
 pythFused :: Int -> [(Int, Int, Int)]
 pythFused n = F.run $ F.runNonDetA $ programFused n
@@ -90,7 +88,6 @@ programEv upbound = do
     y <- E.perform E.choose upbound
     z <- E.perform E.choose upbound
     if x * x + y * y == z * z then return (x, y, z) else E.perform (\r -> E.none r) ()
-{-# NOINLINE programEv #-}
 
 pythEv :: Int -> [(Int, Int, Int)]
 pythEv n = E.runEff $ E.chooseAll $ programEv n
@@ -106,7 +103,6 @@ programMp upbound = do
     y <- Mp.perform Mp.choose upbound
     z <- Mp.perform Mp.choose upbound
     if x * x + y * y == z * z then return (x, y, z) else Mp.perform (\r -> Mp.none r) ()
-{-# NOINLINE programMp #-}
 
 pythMp :: Int -> [(Int, Int, Int)]
 pythMp n = Mp.runEff $ Mp.chooseAll $ programMp n
@@ -125,7 +121,6 @@ programEff upbound = do
   where
     choice 0 = empty
     choice n = choice (n - 1) <|> pure n
-{-# NOINLINE programEff #-}
 
 pythEff :: Int -> [(Int, Int, Int)]
 pythEff n = EF.run $ EF.runNonDetAll $ programEff n
@@ -144,7 +139,6 @@ programMtl upbound = do
   where
     choice 0 = empty
     choice n = choice (n - 1) <|> pure n
-{-# NOINLINE programMtl #-}
 
 pythLogict :: Int -> [(Int, Int, Int)]
 pythLogict n = M.observeAll $ programMtl n
@@ -163,17 +157,39 @@ programEffective upbound = do
   where
     choice 0 = empty
     choice n = choice (n - 1) <|> pure n
-{-# NOINLINE programEffective #-}
 
 pythEffective :: Int -> [(Int, Int, Int)]
 pythEffective n = EV.handle (EV.nondet) (programEffective n)
 
 pythEffectiveDeep :: Int -> [(Int, Int, Int)]
 pythEffectiveDeep n = EV.handle (run EV.|> run EV.|> run EV.|> run EV.|> run EV.|> EV.nondet EV.|>
-                                 run EV.|> run EV.|> run EV.|> run EV.|> run ) (programEffective n)
+                                 run EV.|> run EV.|> run EV.|> run EV.|> run ) p
   where
     run = EV.reader ()
+    p = (programEffective n)
+
+pythEffectiveDeep' :: Int -> [(Int, Int, Int)]
+pythEffectiveDeep' n = EV.handle (run EV.|> run EV.|> run EV.|> run EV.|> run EV.|> EV.nondet EV.|>
+                                  run EV.|> run EV.|> run EV.|> run EV.|> run ) p
+  where
+    run = EV.ignore ()
+    p = (programEffective n)
+
+pythEffectiveDeep'' :: Int -> [(Int, Int, Int)]
+pythEffectiveDeep'' n = extract $ (h . h . h . h . h
+                      . h'
+                      . h . h . h.  h . h) p
+  where
+    run = EV.ignore ()
+    p = (programEffective n)
+
+    h :: forall effs a . EV.HFunctor (EV.Effs effs) => EV.Prog (EV.Ask () ': effs) a -> EV.Prog effs a
+    h = EV.handlePApp @'[EV.Ask ()] @'[] @effs run
+
+    h' = EV.handlePApp EV.nondet
+
+    extract :: EV.Prog '[] a -> a
+    extract = M.runIdentity . EV.eval EV.absurdEffs
 
 pythNative :: Int -> [(Int, Int, Int)]
 pythNative n = [ (x, y, z) | x <- [1 .. n], y <- [1 .. n], z <- [1 .. n], x * x + y * y == z * z ]
-{-# NOINLINE pythNative #-}
