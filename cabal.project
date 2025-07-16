@@ -14,5 +14,5 @@ allow-newer: eff:primitive
 benchmarks: True
 tests: True
 
-package mtl
+package *
   ghc-options: -O2
