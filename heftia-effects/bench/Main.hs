@@ -114,6 +114,7 @@ main =
                     , bench "eff" $ nf pythEff x
                     , bench "mtl-logict" $ nf pythLogict x
                     , bench "effective" $ nf pythEffective x
+                    , bench "effective.staged" $ nf pythEffectiveStaged x
                     , bench "native" $ nf pythNative x
                     ] -- Polysemy case is excluded because of incorrect semantics.
         , bgroup "nondet.deep" $
@@ -128,8 +129,9 @@ main =
                     , bench "eff.5+5" $ nf pythEffDeep x
                     , bench "mtl-logict.5+5" $ nf pythLogictDeep x
                     , bench "effective.5+5" $ nf pythEffectiveDeep x
-                    , bench "effective.ignore.5+5" $ nf pythEffectiveDeep' x
-                    , bench "effective.ignore'.5+5" $ nf pythEffectiveDeep'' x
+--                    , bench "effective.ignore.5+5" $ nf pythEffectiveDeep' x
+--                    , bench "effective.ignore'.5+5" $ nf pythEffectiveDeep'' x
+                    , bench "effective.staged.5+5" $ nf pythEffectiveDeepStaged x
                     ]
         , bgroup "coroutine.shallow" $
             [1000] <&> \x ->

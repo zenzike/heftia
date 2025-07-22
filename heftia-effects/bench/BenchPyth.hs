@@ -1,3 +1,4 @@
+{-# LANGUAGE TemplateHaskell #-}
 -- SPDX-License-Identifier: BSD-3-Clause
 -- (c) 2022 Xy Ren; 2024 Sayo Koyoneda
 
@@ -28,6 +29,11 @@ import "effective" Control.Effect.Alternative qualified as EV
 import "effective" Control.Effect.Nondet qualified as EV
 import "effective" Control.Effect.Reader qualified as EV
 import "effective" Data.HFunctor qualified as EV
+import "effective" Control.Effect.CodeGen qualified as EV
+import "effective" Control.Monad.Trans.List qualified as EV
+import "effective" Control.Effect.Internal.AlgTrans qualified as EV
+import EffectiveStaged as EVstaged
+import Data.Functor.Identity
 
 programFreer :: (FS.Member FS.NonDet es) => Int -> FS.Eff es (Int, Int, Int)
 programFreer upbound = do
@@ -168,6 +174,7 @@ pythEffectiveDeep n = EV.handle (run EV.|> run EV.|> run EV.|> run EV.|> run EV.
     run = EV.reader ()
     p = (programEffective n)
 
+{-
 pythEffectiveDeep' :: Int -> [(Int, Int, Int)]
 pythEffectiveDeep' n = EV.handle (run EV.|> run EV.|> run EV.|> run EV.|> run EV.|> EV.nondet EV.|>
                                   run EV.|> run EV.|> run EV.|> run EV.|> run ) p
@@ -190,6 +197,27 @@ pythEffectiveDeep'' n = extract $ (h . h . h . h . h
 
     extract :: EV.Prog '[] a -> a
     extract = M.runIdentity . EV.eval EV.absurdEffs
+-}
 
 pythNative :: Int -> [(Int, Int, Int)]
 pythNative n = [ (x, y, z) | x <- [1 .. n], y <- [1 .. n], z <- [1 .. n], x * x + y * y == z * z ]
+
+choose :: Int -> [Int]
+choose n = $$(EV.stage (EV.pushWithUpAT @Identity)
+  (EVstaged.chooseGen [||n||] [||choose||]))
+
+pythEffectiveStaged :: Int -> [(Int, Int, Int)]
+pythEffectiveStaged n = $$(EV.stage (EV.pushWithUpAT @Identity)
+ (EVstaged.pythGen [||n||] [||choose||]))
+ 
+pythEffectiveDeepStaged :: Int -> [(Int, Int, Int)]
+pythEffectiveDeepStaged n = (runIdentity . r . r . r . r . r . EV.runListT' . r . r . r . r . r)
+  $$(EV.stage
+         (rAT `EV.fuseAT` rAT `EV.fuseAT` rAT `EV.fuseAT` rAT `EV.fuseAT` rAT
+            `EV.fuseAT` EV.pushWithUpAT @(EVstaged.R5 Identity)
+            `EV.fuseAT` upR5
+            `EV.fuseAT` EV.weakenC @((~) EV.Gen) (rAT `EV.fuseAT` rAT `EV.fuseAT` rAT `EV.fuseAT` rAT `EV.fuseAT` rAT)) 
+       (EVstaged.pythGen [||n||] [||choose||]))
+  where 
+    r :: EV.ReaderT () m a -> m a
+    r m = EV.runReaderT m () 
