@@ -1,3 +1,4 @@
+{-# LANGUAGE  TemplateHaskell #-}
 -- SPDX-License-Identifier: BSD-3-Clause
 -- (c) 2022 Xy Ren; 2024 Sayo Koyoneda
 
@@ -25,6 +26,12 @@ import "eff" Control.Effect qualified as E
 import "effective" Control.Effect qualified as EF
 import "effective" Control.Effect.Except qualified as EF
 import "effective" Control.Effect.Reader qualified as EF
+import "effective" Control.Effect.Reader qualified as EV
+import "effective" Control.Effect.Except qualified as EV
+import "effective" Control.Effect.CodeGen qualified as EV
+import EffectiveStaged as EVstaged
+import "effective" Control.Effect.Internal.AlgTrans qualified as EV
+import Data.Functor.Identity
 
 programHeftia :: (H.Member (H.Throw ()) ef, H.MemberH (H.Catch ()) eh) => Int -> H.Eff eh ef a
 programHeftia = \case
@@ -122,3 +129,30 @@ catchEffectiveDeep :: Int -> Either () ()
 catchEffectiveDeep n = EF.handle (run EF.|> run EF.|> run EF.|> run EF.|> run EF.|> EF.except EF.|>
                                   run EF.|> run EF.|> run EF.|> run EF.|> run ) (programEffective n)
   where run = EF.reader ()
+  
+
+catchEffectiveStaged :: Int -> Either () ()
+catchEffectiveStaged n = runIdentity (EV.runExceptT (p n)) where 
+  p :: Int -> EV.ExceptT () Identity ()
+  p m = $$(EV.stage
+    (EV.upExcept @() @Identity `EV.fuseAT` EV.exceptAT @(EV.Up ()))
+    (EVstaged.catchGen [||m||] [||p||]))
+
+catchEffectiveDeepStaged :: Int -> Either () ()
+catchEffectiveDeepStaged n = 
+  (runIdentity . r . r . r . r . r . EV.runExceptT . r . r . r . r . r) (p n) 
+  where 
+    r :: EV.ReaderT () m a -> m a
+    r m = EV.runReaderT m () 
+
+    p :: Int -> EVstaged.R5 (EV.ExceptT () (EVstaged.R5 Identity)) ()
+    p m = $$(EV.stage
+      (             EVstaged.upR5 @(EV.ExceptT () (EVstaged.R5 Identity))
+        `EV.fuseAT` EV.upExcept @() @(EVstaged.R5 Identity)
+        `EV.fuseAT` EVstaged.upR5 @Identity 
+        ---------------------
+        `EV.fuseAT` EV.weakenC @((~) EV.Gen) (
+                    EVstaged.r5AT
+        `EV.fuseAT` EV.exceptAT @(EV.Up ())
+        `EV.fuseAT` EVstaged.r5AT))
+      (EVstaged.catchGen [||m||] [||p||]))

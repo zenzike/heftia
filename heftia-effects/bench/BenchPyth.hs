@@ -213,10 +213,10 @@ pythEffectiveStaged n = $$(EV.stage (EV.pushWithUpAT @Identity)
 pythEffectiveDeepStaged :: Int -> [(Int, Int, Int)]
 pythEffectiveDeepStaged n = (runIdentity . r . r . r . r . r . EV.runListT' . r . r . r . r . r)
   $$(EV.stage
-         (rAT `EV.fuseAT` rAT `EV.fuseAT` rAT `EV.fuseAT` rAT `EV.fuseAT` rAT
+         (r5AT
             `EV.fuseAT` EV.pushWithUpAT @(EVstaged.R5 Identity)
-            `EV.fuseAT` upR5
-            `EV.fuseAT` EV.weakenC @((~) EV.Gen) (rAT `EV.fuseAT` rAT `EV.fuseAT` rAT `EV.fuseAT` rAT `EV.fuseAT` rAT)) 
+            `EV.fuseAT` upR5 @Identity 
+            `EV.fuseAT` EV.weakenC @((~) EV.Gen) r5AT) 
        (EVstaged.pythGen [||n||] [||choose||]))
   where 
     r :: EV.ReaderT () m a -> m a

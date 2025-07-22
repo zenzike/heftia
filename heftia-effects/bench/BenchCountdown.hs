@@ -1,3 +1,4 @@
+{-# LANGUAGE  TemplateHaskell #-}
 -- SPDX-License-Identifier: BSD-3-Clause
 -- (c) 2022 Xy Ren; 2024 Sayo Koyoneda
 
@@ -27,6 +28,10 @@ import "eff" Control.Effect qualified as EF
 import "effective" Control.Effect qualified as EV
 import "effective" Control.Effect.State qualified as EV
 import "effective" Control.Effect.Reader qualified as EV
+import "effective" Control.Effect.CodeGen qualified as EV
+import EffectiveStaged as EVstaged
+import "effective" Control.Effect.Internal.AlgTrans qualified as EV
+import Data.Functor.Identity
 
 programHeftia :: (H.Member (H.State Int) es) => H.Eff '[] es Int
 programHeftia = do
@@ -195,3 +200,30 @@ countdownEffectiveDeep :: Int -> (Int, Int)
 countdownEffectiveDeep s = EV.handle (run EV.|> run EV.|> run EV.|> run EV.|> run EV.|> EV.state s EV.|>
                                       run EV.|> run EV.|> run EV.|> run EV.|> run ) programEffective
   where run = EV.reader ()
+
+countdownEffectiveStaged :: Int -> (Int, Int)
+countdownEffectiveStaged n = runIdentity (EV.runStateT p n) where 
+  p :: EV.StateT Int Identity Int
+  p = $$(EV.stage
+    (EV.upState @Int @Identity `EV.fuseAT` EV.stateAT @(EV.Up Int))
+    (EVstaged.countdownGen [||p||]))
+    
+
+countdownEffectiveDeepStaged :: Int -> (Int, Int)
+countdownEffectiveDeepStaged n = 
+  (runIdentity . r . r . r . r . r . (flip EV.runStateT n) . r . r . r . r . r) p 
+  where 
+    r :: EV.ReaderT () m a -> m a
+    r m = EV.runReaderT m () 
+
+    p :: EVstaged.R5 (EV.StateT Int (EVstaged.R5 Identity)) Int
+    p = $$(EV.stage
+      (             EVstaged.upR5 @(EV.StateT Int (EVstaged.R5 Identity))
+        `EV.fuseAT` EV.upState @Int @(EVstaged.R5 Identity)
+        `EV.fuseAT` EVstaged.upR5 @Identity 
+        ---------------------
+        `EV.fuseAT` EV.weakenC @((~) EV.Gen) (
+                    EVstaged.r5AT
+        `EV.fuseAT` EV.stateAT @(EV.Up Int)
+        `EV.fuseAT` EVstaged.r5AT ))
+      (EVstaged.countdownGen [||p||]))

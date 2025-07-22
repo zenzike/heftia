@@ -24,12 +24,12 @@ catchGen cN self =
       else throw @(Up ()) [|| () ||]
 
 countdownGen :: Members '[CodeGen, UpOp m, Put (Up Int), Get (Up Int)] sig 
-             => Up (m ()) -> Prog sig (Up ())
+             => Up (m Int) -> Prog sig (Up Int)
 countdownGen self = 
   do cs <- get @(Up Int)
      b <- split [|| $$cs > 0 ||]
      if b then do put [|| $$cs - 1 ||]; up self
-          else return [|| () ||]
+          else return cs
 
 localGen :: forall sig m. Members '[CodeGen, UpOp m, Ask (Up Int), Local (Up Int)] sig
          => Up Int -> Up (Int -> m Int) -> Prog sig (Up Int)
@@ -82,10 +82,15 @@ type M = R5 (ListT (R5 Identity))
 rAT :: AlgTrans '[Ask (Up ())]  '[] '[ReaderT (Up ())] Monad
 rAT = readerAskAT @(Up ())
 
-upR5 :: AlgTrans '[UpOp (R5 Identity)] '[Ask (Up ()), CodeGen, UpOp Identity] '[] Monad
+r5AT :: AlgTrans '[Ask (Up ())] '[]
+                 [ReaderT (Up ()), ReaderT (Up ()), ReaderT (Up ()), ReaderT (Up ()), ReaderT (Up ())] 
+                 Monad
+r5AT = weakenC (rAT `fuseAT` rAT `fuseAT` rAT `fuseAT` rAT `fuseAT` rAT)
+
+upR5 :: forall l. AlgTrans '[UpOp (R5 l)] '[Ask (Up ()), CodeGen, UpOp l] '[] Monad
 upR5 = weakenC $
-         upReader @() @(R4 Identity) `pipeAT`
-         upReader @() @(R3 Identity) `pipeAT`
-         upReader @() @(R2 Identity) `pipeAT`
-         upReader @() @(R1 Identity) `pipeAT`
-         upReader @() @(Identity) 
+         upReader @() @(R4 l) `pipeAT`
+         upReader @() @(R3 l) `pipeAT`
+         upReader @() @(R2 l) `pipeAT`
+         upReader @() @(R1 l) `pipeAT`
+         upReader @() @(l) 
