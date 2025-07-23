@@ -57,14 +57,13 @@ chooseGen cN self =
     empty 
     
 coroutine1Gen :: forall sig m. Members '[CodeGen, Yield (Up Int) (Up Int), UpOp m] sig
-              => Up [Int] -> Up ([Int] -> m [Int]) -> Prog sig (Up [Int])
-coroutine1Gen cXs self =
+              => Up [Int] -> Up [Int] -> Up ([Int] -> [Int] -> m [Int]) -> Prog sig (Up [Int])
+coroutine1Gen cRs cXs self =
   do genCase cXs \case
-       Nothing         -> return [|| [] ||]
+       Nothing         -> return [|| reverse $$cRs ||]
        Just (cX, cXs') -> 
          do cY <- yield @(Up Int) @(Up Int) cX
-            rs <- up [|| $$self $$cXs' ||]
-            return [|| $$cY : $$rs ||]
+            up [|| $$self ($$cY : $$cRs) $$cXs' ||]
 
 coroutine2Gen :: forall sig m a. Members '[CodeGen, Yield (Up Int) (Up Int), UpOp m] sig
               => Up Int -> Up (Int -> m a) -> Prog sig (Up a)

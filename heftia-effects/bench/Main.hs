@@ -148,6 +148,8 @@ main =
                     , bench "mp" $ nf coroutineMp x
                     -- `mpeff` is O(n^2) slow because of: https://dl.acm.org/doi/10.1145/2633357.2633360
                     -- `eff` is probably for the same reason.
+                    , bench "effective" $ nf coroutineEffective x
+                    , bench "effective.staged" $ nf coroutineEffectiveStaged x
                     ] -- add mtl?
         , bgroup "coroutine.deep" $
             [1000] <&> \x ->
