@@ -191,7 +191,6 @@ pythEffectiveDeep n = EV.handle h p
     run = EV.reader ()
     p = (programEffective n)
 
-{-
 pythEffectiveDeep' :: Int -> [(Int, Int, Int)]
 pythEffectiveDeep' n = EV.handle (EV.unscope (Proxy @(EV.Choose_)) EV.|> run EV.|> run EV.|> run EV.|> run EV.|> run EV.|> EV.nondet EV.|>
                                   run EV.|> run EV.|> run EV.|> run EV.|> run ) p
@@ -218,7 +217,6 @@ pythEffectiveDeep'' n = extract
 
     extract :: EV.Prog '[] a -> a
     extract = M.runIdentity . EV.eval EV.absurdEffs
--}
 
 pythEffectiveList :: Int -> [(Int, Int, Int)]
 pythEffectiveList n = EV.handle EV.list (programEffective n)
