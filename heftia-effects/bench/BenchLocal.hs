@@ -130,27 +130,32 @@ localEffectiveDeep n = EV.handle (run EV.|> run EV.|> run EV.|> run EV.|> run EV
   where run = EV.reader ()
 
 localEffectiveStaged :: Int -> Int
-localEffectiveStaged n = runIdentity (EV.runReaderT (p n) 0) where 
+localEffectiveStaged n = runIdentity (EV.runReaderT (p n) 0) where
   p :: Int -> EV.ReaderT Int EV.Identity Int
   p m = $$(EV.stage
     (EV.upReader @Int @EV.Identity `EV.fuseAT` EV.readerAT @(EV.Up Int))
     (EVstaged.localGen [||m||] [||p||]))
 
 localEffectiveDeepStaged :: Int -> Int
-localEffectiveDeepStaged n = 
-  (runIdentity . r . r . r . r . r . (flip EV.runReaderT 0) . r . r . r . r . r) (p n) 
-  where 
+localEffectiveDeepStaged n =
+  (runIdentity . r . r . r . r . r . (flip EV.runReaderT 0) . r . r . r . r . r) (p n)
+  where
     r :: EV.ReaderT () m a -> m a
-    r m = EV.runReaderT m () 
+    r m = EV.runReaderT m ()
 
     p :: Int -> EVstaged.R5 (EV.ReaderT Int (EVstaged.R5 Identity)) Int
     p m = $$(EV.stage
       (             EVstaged.upR5 @(EV.ReaderT Int (EVstaged.R5 Identity))
         `EV.fuseAT` EV.upReader @Int @(EVstaged.R5 Identity)
-        `EV.fuseAT` EVstaged.upR5 @Identity 
+        `EV.fuseAT` EVstaged.upR5 @Identity
         ---------------------
         `EV.fuseAT` EV.weakenC @((~) EV.Gen) (
                     EVstaged.r5AT
         `EV.fuseAT` EV.readerAT @(EV.Up Int)
         `EV.fuseAT` EVstaged.r5AT ))
       (EVstaged.localGen [||m||] [||p||]))
+
+localEffectiveDeep' :: Int -> Int
+localEffectiveDeep' n = EV.handle (run EV.|> run EV.|> run EV.|> run EV.|> run EV.|> EV.reader (0 :: Int) EV.|>
+                                  run EV.|> run EV.|> run EV.|> run EV.|> run ) (programEffective n)
+  where run = EV.asker ()

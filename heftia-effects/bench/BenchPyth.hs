@@ -27,6 +27,7 @@ import "eff" Control.Effect qualified as EF
 import "effective" Control.Effect qualified as EV
 import "effective" Control.Effect.Alternative qualified as EV
 import "effective" Control.Effect.Nondet qualified as EV
+import "effective" Control.Effect.Nondet.Logic qualified as EVL
 import "effective" Control.Effect.Reader qualified as EV
 import "effective" Data.HFunctor qualified as EV
 import "effective" Control.Effect.CodeGen qualified as EV
@@ -34,6 +35,7 @@ import "effective" Control.Monad.Trans.List qualified as EV
 import "effective" Control.Effect.Internal.AlgTrans qualified as EV
 import EffectiveStaged as EVstaged
 import Data.Functor.Identity
+import Data.Proxy
 
 programFreer :: (FS.Member FS.NonDet es) => Int -> FS.Eff es (Int, Int, Int)
 programFreer upbound = do
@@ -165,39 +167,64 @@ programEffective upbound = do
     choice n = choice (n - 1) <|> pure n
 
 pythEffective :: Int -> [(Int, Int, Int)]
-pythEffective n = EV.handle (EV.nondet) (programEffective n)
+pythEffective n = EV.handle (EV.unscope (Proxy @(EV.Choose_)) EV.|> EV.nondet) (programEffective n)
+
+pythEffectiveBacktrack :: Int -> [(Int, Int, Int)]
+pythEffectiveBacktrack n = EV.handle EV.backtrack (programEffective n)
+
+pythEffective' :: Int -> [(Int, Int, Int)]
+pythEffective' n = EV.handle EV.nondet' (programEffective n)
 
 pythEffectiveDeep :: Int -> [(Int, Int, Int)]
-pythEffectiveDeep n = EV.handle (run EV.|> run EV.|> run EV.|> run EV.|> run EV.|> EV.nondet EV.|>
-                                 run EV.|> run EV.|> run EV.|> run EV.|> run ) p
+pythEffectiveDeep n = EV.handle h p
   where
+    h :: EV.Handler '[EV.Choose, EV.Ask (), EV.Local (), EV.Empty, EV.Nondet ]
+      '[]
+      '[ EV.ReaderT (), EV.ReaderT (), EV.ReaderT (), EV.ReaderT (), EV.ReaderT ()
+       , EV.ListT
+       , EV.ReaderT (), EV.ReaderT (), EV.ReaderT (), EV.ReaderT (), EV.ReaderT ()]
+       '[[]]
+    h = (EV.unscope (Proxy @EV.Choose_) EV.|>
+        run EV.|> run EV.|> run EV.|> run EV.|> run EV.|>
+        EV.nondet EV.|>
+        run EV.|> run EV.|> run EV.|> run EV.|> run )
     run = EV.reader ()
     p = (programEffective n)
 
 {-
 pythEffectiveDeep' :: Int -> [(Int, Int, Int)]
-pythEffectiveDeep' n = EV.handle (run EV.|> run EV.|> run EV.|> run EV.|> run EV.|> EV.nondet EV.|>
+pythEffectiveDeep' n = EV.handle (EV.unscope (Proxy @(EV.Choose_)) EV.|> run EV.|> run EV.|> run EV.|> run EV.|> run EV.|> EV.nondet EV.|>
                                   run EV.|> run EV.|> run EV.|> run EV.|> run ) p
   where
-    run = EV.ignore ()
+    run = EV.asker ()
     p = (programEffective n)
 
 pythEffectiveDeep'' :: Int -> [(Int, Int, Int)]
-pythEffectiveDeep'' n = extract $ (h . h . h . h . h
-                      . h'
-                      . h . h . h.  h . h) p
+pythEffectiveDeep'' n = extract
+                      $ ha . ha . ha . ha . ha
+                      . hn
+                      . ha . ha . ha.  ha . ha . hu $ p
   where
-    run = EV.ignore ()
+    run = EV.asker ()
     p = (programEffective n)
 
-    h :: forall effs a . EV.HFunctor (EV.Effs effs) => EV.Prog (EV.Ask () ': effs) a -> EV.Prog effs a
-    h = EV.handlePApp @'[EV.Ask ()] @'[] @effs run
+    ha :: forall effs a . EV.HFunctor (EV.Effs effs) => EV.Prog (EV.Ask () ': effs) a -> EV.Prog effs a
+    ha = EV.handlePApp @'[EV.Ask ()] @'[] @effs run
 
-    h' = EV.handlePApp EV.nondet
+    hn = EV.handlePApp EV.nondet
+
+    hu = EV.handlePApp (EV.unscope (Proxy @(EV.Choose_)))
+
 
     extract :: EV.Prog '[] a -> a
     extract = M.runIdentity . EV.eval EV.absurdEffs
 -}
+
+pythEffectiveList :: Int -> [(Int, Int, Int)]
+pythEffectiveList n = EV.handle EV.list (programEffective n)
+
+pythEffectiveLogic :: Int -> [(Int, Int, Int)]
+pythEffectiveLogic n = EV.handle EVL.list (programEffective n)
 
 pythNative :: Int -> [(Int, Int, Int)]
 pythNative n = [ (x, y, z) | x <- [1 .. n], y <- [1 .. n], z <- [1 .. n], x * x + y * y == z * z ]
@@ -209,15 +236,15 @@ choose n = $$(EV.stage (EV.pushWithUpAT @Identity)
 pythEffectiveStaged :: Int -> [(Int, Int, Int)]
 pythEffectiveStaged n = $$(EV.stage (EV.pushWithUpAT @Identity)
  (EVstaged.pythGen [||n||] [||choose||]))
- 
+
 pythEffectiveDeepStaged :: Int -> [(Int, Int, Int)]
 pythEffectiveDeepStaged n = (runIdentity . r . r . r . r . r . EV.runListT' . r . r . r . r . r)
   $$(EV.stage
          (r5AT
             `EV.fuseAT` EV.pushWithUpAT @(EVstaged.R5 Identity)
-            `EV.fuseAT` upR5 @Identity 
-            `EV.fuseAT` EV.weakenC @((~) EV.Gen) r5AT) 
+            `EV.fuseAT` upR5 @Identity
+            `EV.fuseAT` EV.weakenC @((~) EV.Gen) r5AT)
        (EVstaged.pythGen [||n||] [||choose||]))
-  where 
+  where
     r :: EV.ReaderT () m a -> m a
-    r m = EV.runReaderT m () 
+    r m = EV.runReaderT m ()

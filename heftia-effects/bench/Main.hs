@@ -20,7 +20,7 @@ main =
                     (show x)
                     [ bench "heftia" $ nf countdownHeftia x
                     , bench "freer" $ nf countdownFreer x
-                    , bench "polyemy" $ nf countdownSem x
+                    , bench "polysemy" $ nf countdownSem x
                     , bench "fused" $ nf countdownFused x
                     , bench "effectful" $ nf countdownEffectful x
                     , bench "eff" $ nf countdownEff x
@@ -28,6 +28,7 @@ main =
                     , bench "mtl" $ nf countdownMtl x
                     , bench "effective" $ nf countdownEffective x
                     , bench "effective.staged" $ nf countdownEffectiveStaged x
+                    , bench "effective2" $ nf countdownEffective2 x
                     ]
         , bgroup "countdown.deep" $
             [10000] <&> \x ->
@@ -43,6 +44,7 @@ main =
                     , bench "mtl.5+5" $ nf countdownMtlDeep x
                     , bench "effective.5+5" $ nf countdownEffectiveDeep x
                     , bench "effective.staged.5+5" $ nf countdownEffectiveDeepStaged x
+                    , bench "effective'.5+5" $ nf countdownEffectiveDeep' x
                     ]
         , bgroup "catch.shallow" $
             [10000] <&> \x ->
@@ -75,6 +77,7 @@ main =
                       bench "mtl.5+5" $ nf catchMtlDeep x
                     , bench "effective.5+5" $ nf catchEffectiveDeep x
                     , bench "effective.5+5.staged" $ nf catchEffectiveDeepStaged x
+                    , bench "effective'.5+5" $ nf catchEffectiveDeep' x
                     ]
         , bgroup "local.shallow" $
             [10000] <&> \x ->
@@ -106,6 +109,8 @@ main =
                     --  bench "eff.5+5" $ nf localEffDeep x
                     --  bench "mtl.5+5" $ nf localMtlDeep x
                     , bench "effective.staged.5+5" $ nf localEffectiveDeepStaged x
+                    , bench "effective.5+5" $ nf localEffectiveDeep x
+                    , bench "effective'.5+5" $ nf localEffectiveDeep' x
                     ]
         , bgroup "nondet.shallow" $
             [32] <&> \x ->
@@ -120,6 +125,10 @@ main =
                     , bench "mtl-logict" $ nf pythLogict x
                     , bench "effective" $ nf pythEffective x
                     , bench "effective.staged" $ nf pythEffectiveStaged x
+                    , bench "effective'" $ nf pythEffective' x
+                    , bench "effectiveBacktrack" $ nf pythEffectiveBacktrack x
+                    , bench "effective.List" $ nf pythEffectiveList x
+                    , bench "effective.Logic" $ nf pythEffectiveLogic x
                     , bench "native" $ nf pythNative x
                     ] -- Polysemy case is excluded because of incorrect semantics.
         , bgroup "nondet.deep" $
@@ -134,9 +143,9 @@ main =
                     , bench "eff.5+5" $ nf pythEffDeep x
                     , bench "mtl-logict.5+5" $ nf pythLogictDeep x
                     , bench "effective.5+5" $ nf pythEffectiveDeep x
---                    , bench "effective.ignore.5+5" $ nf pythEffectiveDeep' x
---                    , bench "effective.ignore'.5+5" $ nf pythEffectiveDeep'' x
                     , bench "effective.staged.5+5" $ nf pythEffectiveDeepStaged x
+                    , bench "effective.asker.5+5" $ nf pythEffectiveDeep' x
+                    , bench "effective.asker'.5+5" $ nf pythEffectiveDeep'' x
                     ]
         , bgroup "coroutine.shallow" $
             [1000] <&> \x ->

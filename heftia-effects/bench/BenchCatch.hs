@@ -129,30 +129,34 @@ catchEffectiveDeep :: Int -> Either () ()
 catchEffectiveDeep n = EF.handle (run EF.|> run EF.|> run EF.|> run EF.|> run EF.|> EF.except EF.|>
                                   run EF.|> run EF.|> run EF.|> run EF.|> run ) (programEffective n)
   where run = EF.reader ()
-  
 
 catchEffectiveStaged :: Int -> Either () ()
-catchEffectiveStaged n = runIdentity (EV.runExceptT (p n)) where 
+catchEffectiveStaged n = runIdentity (EV.runExceptT (p n)) where
   p :: Int -> EV.ExceptT () Identity ()
   p m = $$(EV.stage
     (EV.upExcept @() @Identity `EV.fuseAT` EV.exceptAT @(EV.Up ()))
     (EVstaged.catchGen [||m||] [||p||]))
 
 catchEffectiveDeepStaged :: Int -> Either () ()
-catchEffectiveDeepStaged n = 
-  (runIdentity . r . r . r . r . r . EV.runExceptT . r . r . r . r . r) (p n) 
-  where 
+catchEffectiveDeepStaged n =
+  (runIdentity . r . r . r . r . r . EV.runExceptT . r . r . r . r . r) (p n)
+  where
     r :: EV.ReaderT () m a -> m a
-    r m = EV.runReaderT m () 
+    r m = EV.runReaderT m ()
 
     p :: Int -> EVstaged.R5 (EV.ExceptT () (EVstaged.R5 Identity)) ()
     p m = $$(EV.stage
       (             EVstaged.upR5 @(EV.ExceptT () (EVstaged.R5 Identity))
         `EV.fuseAT` EV.upExcept @() @(EVstaged.R5 Identity)
-        `EV.fuseAT` EVstaged.upR5 @Identity 
+        `EV.fuseAT` EVstaged.upR5 @Identity
         ---------------------
         `EV.fuseAT` EV.weakenC @((~) EV.Gen) (
                     EVstaged.r5AT
         `EV.fuseAT` EV.exceptAT @(EV.Up ())
         `EV.fuseAT` EVstaged.r5AT))
       (EVstaged.catchGen [||m||] [||p||]))
+
+catchEffectiveDeep' :: Int -> Either () ()
+catchEffectiveDeep' n = EF.handle (run EF.|> run EF.|> run EF.|> run EF.|> run EF.|> EF.except EF.|>
+                                   run EF.|> run EF.|> run EF.|> run EF.|> run ) (programEffective n)
+  where run = EF.asker ()
