@@ -298,3 +298,4 @@ benchmark heftia-bench
         BenchLocal
         BenchCoroutine
         BenchPyth
+        EffectiveStaged

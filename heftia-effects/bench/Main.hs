@@ -27,6 +27,7 @@ main =
                     , bench "ev" $ nf countdownEv x
                     , bench "mtl" $ nf countdownMtl x
                     , bench "effective" $ nf countdownEffective x
+                    , bench "effective.staged" $ nf countdownEffectiveStaged x
                     ]
         , bgroup "countdown.deep" $
             [10000] <&> \x ->
@@ -41,6 +42,7 @@ main =
                     , bench "ev.5+5" $ nf countdownEvDeep x
                     , bench "mtl.5+5" $ nf countdownMtlDeep x
                     , bench "effective.5+5" $ nf countdownEffectiveDeep x
+                    , bench "effective.staged.5+5" $ nf countdownEffectiveDeepStaged x
                     ]
         , bgroup "catch.shallow" $
             [10000] <&> \x ->
@@ -54,6 +56,7 @@ main =
                       -- `eff` is x500 slow in this case, so it is excluded because it makes the graph hard to read.
                       bench "mtl" $ nf catchMtl x
                     , bench "effective" $ nf catchEffective x
+                    , bench "effective.staged" $ nf catchEffectiveStaged x
                     ]
         , bgroup "catch.deep" $
             [10000] <&> \x ->
@@ -71,6 +74,7 @@ main =
                     , -- , bench "eff.5+5" $ nf catchEffDeep x
                       bench "mtl.5+5" $ nf catchMtlDeep x
                     , bench "effective.5+5" $ nf catchEffectiveDeep x
+                    , bench "effective.5+5.staged" $ nf catchEffectiveDeepStaged x
                     ]
         , bgroup "local.shallow" $
             [10000] <&> \x ->
@@ -84,6 +88,7 @@ main =
                     -- `eff` is x500 slow in this case, so it is excluded because it makes the graph hard to read.
                     --  bench "mtl" $ nf localMtl x
                     , bench "effective" $ nf localEffective x
+                    , bench "effective.staged" $ nf localEffectiveStaged x
                     ]
         , bgroup "local.deep" $
             [10000] <&> \x ->
@@ -100,7 +105,7 @@ main =
                     , bench "effectful.5+5" $ nf localEffectfulDeep x
                     --  bench "eff.5+5" $ nf localEffDeep x
                     --  bench "mtl.5+5" $ nf localMtlDeep x
-                    , bench "effective.5+5" $ nf localEffectiveDeep x
+                    , bench "effective.staged.5+5" $ nf localEffectiveDeepStaged x
                     ]
         , bgroup "nondet.shallow" $
             [32] <&> \x ->
@@ -114,6 +119,7 @@ main =
                     , bench "eff" $ nf pythEff x
                     , bench "mtl-logict" $ nf pythLogict x
                     , bench "effective" $ nf pythEffective x
+                    , bench "effective.staged" $ nf pythEffectiveStaged x
                     , bench "native" $ nf pythNative x
                     ] -- Polysemy case is excluded because of incorrect semantics.
         , bgroup "nondet.deep" $
@@ -128,8 +134,9 @@ main =
                     , bench "eff.5+5" $ nf pythEffDeep x
                     , bench "mtl-logict.5+5" $ nf pythLogictDeep x
                     , bench "effective.5+5" $ nf pythEffectiveDeep x
-                    , bench "effective.ignore.5+5" $ nf pythEffectiveDeep' x
-                    , bench "effective.ignore'.5+5" $ nf pythEffectiveDeep'' x
+--                    , bench "effective.ignore.5+5" $ nf pythEffectiveDeep' x
+--                    , bench "effective.ignore'.5+5" $ nf pythEffectiveDeep'' x
+                    , bench "effective.staged.5+5" $ nf pythEffectiveDeepStaged x
                     ]
         , bgroup "coroutine.shallow" $
             [1000] <&> \x ->
@@ -141,6 +148,8 @@ main =
                     , bench "mp" $ nf coroutineMp x
                     -- `mpeff` is O(n^2) slow because of: https://dl.acm.org/doi/10.1145/2633357.2633360
                     -- `eff` is probably for the same reason.
+                    , bench "effective" $ nf coroutineEffective x
+                    , bench "effective.staged" $ nf coroutineEffectiveStaged x
                     ] -- add mtl?
         , bgroup "coroutine.deep" $
             [1000] <&> \x ->
